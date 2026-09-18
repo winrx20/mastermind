@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Focus List — To-do app</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: rgba(255, 255, 255, .88);
+      --surface-strong: #fff;
+      --text: #172033;
+      --muted: #6c7890;
+      --line: #e6eaf1;
+      --accent: #6d5dfc;
+      --accent-dark: #5445e8;
+      --accent-soft: #eeecff;
+      --danger: #d94b5b;
+      --shadow: 0 24px 70px rgba(32, 47, 79, .12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text); background: radial-gradient(circle at top left, #e9e7ff 0, transparent 36%), var(--bg);
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; border: 0; }
+    .app { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 54px 0 48px; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; }
+    .eyebrow { color: var(--accent); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 8px 0 8px; font-size: clamp(2.1rem, 5vw, 3.7rem); line-height: .98; letter-spacing: -.06em; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 1rem; }
+    .date { color: var(--muted); font-size: .9rem; text-align: right; padding-top: 9px; }
+    .card { background: var(--surface); border: 1px solid rgba(255,255,255,.8); border-radius: 24px; box-shadow: var(--shadow); backdrop-filter: blur(12px); }
+    .composer { display: flex; gap: 12px; padding: 12px; margin-bottom: 18px; }
+    .composer input { min-width: 0; flex: 1; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; outline: 0; color: var(--text); background: var(--surface-strong); }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+    .primary { padding: 0 22px; border-radius: 14px; color: white; background: var(--accent); font-weight: 750; transition: .2s ease; }
+    .primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+    .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter, .clear { padding: 8px 12px; border-radius: 10px; color: var(--muted); background: transparent; font-size: .88rem; font-weight: 700; }
+    .filter.active { color: var(--accent); background: var(--accent-soft); }
+    .clear:hover { color: var(--danger); background: #fff0f1; }
+    .list { padding: 8px 22px 18px; min-height: 190px; }
+    .task { display: flex; align-items: center; gap: 13px; padding: 16px 2px; border-bottom: 1px solid var(--line); animation: appear .2s ease-out; }
+    .task:last-child { border-bottom: 0; }
+    .check { width: 22px; height: 22px; flex: 0 0 22px; border: 2px solid #c7cedc; border-radius: 50%; background: transparent; transition: .2s; }
+    .check:hover { border-color: var(--accent); }
+    .task.done .check { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 4px var(--surface-strong); }
+    .task-text { flex: 1; min-width: 0; line-height: 1.45; overflow-wrap: anywhere; }
+    .task.done .task-text { color: var(--muted); text-decoration: line-through; }
+    .task-actions { display: flex; gap: 3px; opacity: 0; transition: opacity .15s; }
+    .task:hover .task-actions, .task:focus-within .task-actions { opacity: 1; }
+    .icon-btn { width: 32px; height: 32px; border-radius: 9px; color: var(--muted); background: transparent; }
+    .icon-btn:hover { color: var(--accent); background: var(--accent-soft); }
+    .icon-btn.delete:hover { color: var(--danger); background: #fff0f1; }
+    .edit-input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 9px; outline: 0; }
+    .empty { display: grid; place-items: center; min-height: 176px; padding: 30px; color: var(--muted); text-align: center; }
+    .empty strong { display: block; margin-bottom: 5px; color: var(--text); font-size: 1.05rem; }
+    .footer { display: flex; justify-content: space-between; padding: 4px 2px 0; color: var(--muted); font-size: .83rem; }
+    @keyframes appear { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    @media (max-width: 560px) { .app { width: min(100% - 20px, 980px); padding-top: 30px; } header { display: block; } .date { text-align: left; } .composer { flex-direction: column; } .primary { min-height: 48px; } .toolbar { align-items: flex-start; flex-direction: column; } .task-actions { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div><div class="eyebrow">Your daily workspace</div><h1>Focus list.</h1><p class="subtitle">Small steps, meaningful progress.</p></div>
+      <div class="date" id="date"></div>
+    </header>
+    <form class="composer card" id="task-form">
+      <input id="task-input" aria-label="New task" autocomplete="off" placeholder="What needs to get done?" maxlength="160" required />
+      <button class="primary" type="submit">Add task</button>
+    </form>
+    <section class="card" aria-label="Task list">
+      <div class="toolbar">
+        <div class="filters" role="group" aria-label="Filter tasks">
+          <button class="filter active" data-filter="all" type="button">All</button>
+          <button class="filter" data-filter="active" type="button">Active</button>
+          <button class="filter" data-filter="completed" type="button">Completed</button>
+        </div>
+        <button class="clear" id="clear-completed" type="button">Clear completed</button>
+      </div>
+      <div class="list" id="task-list"></div>
+    </section>
+    <div class="footer"><span id="count">0 tasks</span><span>Saved automatically on this device</span></div>
+  </main>
+  <script>
+    const STORAGE_KEY = 'focus-list-tasks-v1';
+    let tasks = loadTasks();
+    let filter = 'all';
+    const list = document.querySelector('#task-list');
+    const input = document.querySelector('#task-input');
+    const count = document.querySelector('#count');
+
+    function loadTasks() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+      catch { return []; }
+    }
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+    function visibleTasks() {
+      return tasks.filter(task => filter === 'all' || (filter === 'active' ? !task.done : task.done));
+    }
+    function render() {
+      const shown = visibleTasks();
+      list.innerHTML = '';
+      if (!shown.length) {
+        const message = filter === 'completed' ? 'No completed tasks yet.' : filter === 'active' ? 'You’re all caught up!' : 'Your list is ready when you are.';
+        list.innerHTML = `<div class="empty"><div><strong>${message}</strong><span>${filter === 'all' ? 'Add a task above to get started.' : 'Try another filter or add a new task.'}</span></div></div>`;
+      } else shown.forEach(task => list.appendChild(taskElement(task)));
+      const remaining = tasks.filter(task => !task.done).length;
+      count.textContent = `${remaining} ${remaining === 1 ? 'task' : 'tasks'} left`;
+      document.querySelectorAll('.filter').forEach(button => button.classList.toggle('active', button.dataset.filter === filter));
+    }
+    function taskElement(task) {
+      const item = document.createElement('div');
+      item.className = `task${task.done ? ' done' : ''}`;
+      item.dataset.id = task.id;
+      item.innerHTML = `<button class="check" type="button" aria-label="${task.done ? 'Mark as active' : 'Mark as completed'}"></button><span class="task-text"></span><div class="task-actions"><button class="icon-btn edit" type="button" aria-label="Edit task">✎</button><button class="icon-btn delete" type="button" aria-label="Delete task">×</button></div>`;
+      item.querySelector('.task-text').textContent = task.text;
+      item.querySelector('.check').addEventListener('click', () => { task.done = !task.done; save(); render(); });
+      item.querySelector('.delete').addEventListener('click', () => { tasks = tasks.filter(item => item.id !== task.id); save(); render(); });
+      item.querySelector('.edit').addEventListener('click', () => startEdit(item, task));
+      return item;
+    }
+    function startEdit(item, task) {
+      const text = item.querySelector('.task-text');
+      const editor = document.createElement('input'); editor.className = 'edit-input'; editor.value = task.text; editor.maxLength = 160;
+      text.replaceWith(editor); editor.focus(); editor.select();
+      const finish = () => { const value = editor.value.trim(); if (value) task.text = value; save(); render(); };
+      editor.addEventListener('blur', finish); editor.addEventListener('keydown', event => { if (event.key === 'Enter') editor.blur(); if (event.key === 'Escape') { editor.value = task.text; editor.blur(); } });
+    }
+    document.querySelector('#task-form').addEventListener('submit', event => { event.preventDefault(); const text = input.value.trim(); if (!text) return; tasks.unshift({ id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), text, done: false }); input.value = ''; save(); render(); input.focus(); });
+    document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => { filter = button.dataset.filter; render(); }));
+    document.querySelector('#clear-completed').addEventListener('click', () => { tasks = tasks.filter(task => !task.done); save(); render(); });
+    document.querySelector('#date').textContent = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date());
+    render();
+  </script>
+</body>
+</html>
